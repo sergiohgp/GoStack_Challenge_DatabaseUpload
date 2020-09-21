@@ -1,8 +1,9 @@
-import { getCustomRepository } from 'typeorm';
+import { getCustomRepository, getRepository } from 'typeorm';
 // import AppError from '../errors/AppError';
 
 import TransactionRepository from '../repositories/TransactionsRepository';
 import Transaction from '../models/Transaction';
+import Category from '../models/Category';
 
 interface RequestDTO {
   title: string;
@@ -19,11 +20,27 @@ class CreateTransactionService {
     category,
   }: RequestDTO): Promise<Transaction> {
     const transactionRepository = getCustomRepository(TransactionRepository);
+    const categoryRepository = getRepository(Category);
+
+    let transactionCategory = await categoryRepository.findOne({
+      where: {
+        title: category,
+      },
+    });
+
+    if (!transactionCategory) {
+      transactionCategory = categoryRepository.create({
+        title: category,
+      });
+
+      await categoryRepository.save(transactionCategory);
+    }
 
     const transaction = transactionRepository.create({
       title,
       value,
       type,
+      category: transactionCategory,
     });
 
     await transactionRepository.save(transaction);
